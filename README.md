@@ -2,7 +2,7 @@
 MCPやA2Aの基盤として有力なサービス、2025/10にGAされたAgent Coreを検証するリポジトリ。<br>
 初歩的なところから多数の試行錯誤が発生するため、独立。
 
-## 1. 初めてのAgent Core
+## 1. 初めてのAgent Core（2025/10/19）
  https://docs.aws.amazon.com/ja_jp/bedrock-agentcore/latest/devguide/agentcore-get-started-toolkit.html<br>
  上記の通りに進めました、ドキュメントの内容からこちらで変更した点、注目した結果などを中心に記載。<br>
 
@@ -60,7 +60,7 @@ AWS CLIのセットアップ（別件でTerraform使うので実施済み）、A
 ```
 セッションID変えても、Agent Coreがfavoriteという情報が残っているから良いのかな、と思いました。
 
-## 2. 初めてのAgent Core Gateway
+## 2. 初めてのAgent Core Gateway（2025/10/19）
 https://docs.aws.amazon.com/ja_jp/bedrock-agentcore/latest/devguide/gateway-quick-start.html<br>
 上記を実施することで、Gatewayの関連リソースが一式できるようなので、動かして内容を確認していきます。<br>
 公式ドキュメントの内容から少し変更しています。（Bedrock初回のClaudeの許諾に会社名とか必要なのでやめました）<br>
@@ -178,3 +178,34 @@ def lambda_handler(event, context):
         }
 
 ```
+
+## 3. Gatewayを利用するStremlitアプリ：ローカルで試作（2025/10/19）
+https://github.com/ryarai-pbgit/genaiplatform<br>
+最終的にはこちらとも合流したいところですが、まずはローカルで試作。<br>
+ソースコードは[こちら](src/demo)から参照できます。  <br>
+
+- Agent Core Gateway：mcpゲートウェイ
+- Cognito：OAuth認証サーバ
+- Lambda：mcpツールのモック
+- エージェントフレームワーク：LangChain
+- UI：Streamlit
+- LLM：Azure AI Foundry（もうOpenAIとは言わない。。）でgpt-40-mini
+
+Cursorに色々情報見せながら作ってもらいました。LangChainのtoolにラップしないといけないのか、とかその辺りは理解できたおらず言いなりです。<br>
+Cognitoへの認証取得、Gatewayやその先のLambdaへの疎通は確認できました。
+ただ、ほっとくとロジックでToolを使う使わないを判定しようとしたので、LLMに判定させて欲しい旨だけ伝えました。<br>
+プロンプトの制御もあってか、ユーザ側が明示的にToolを使うように言わないと使わないような感じになっています。<br>
+
+普段の会話しつつ
+![サンプルアプリ](images/sampleapp.png)  
+ツール使わないわからない中の情報を取得してもらいました
+![izanai](images/izanai.png)  
+
+ベースラインができたので、次の方向性としては、、
+- mcpツールの実装、Lambdaで良いので実際にBigqueryとGoogleDriveに接続したい
+- アプリのサーバ化
+- LiteLLM/Langfuseとの統合
+の予定。
+
+
+

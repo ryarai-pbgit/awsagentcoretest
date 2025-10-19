@@ -53,3 +53,9 @@ env/
 gateway_config.json
 *.pem
 *.key
+
+# 環境変数ファイル（機密情報を含む）
+env.sh
+.env
+.env.local
+.env.production
