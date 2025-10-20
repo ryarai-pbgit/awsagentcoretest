@@ -59,3 +59,7 @@ env.sh
 .env
 .env.local
 .env.production
+
+# Lambda Layer 関連（ビルド成果物を除外）
+layer/
+bigquery-layer.zip

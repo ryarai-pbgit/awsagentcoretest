@@ -1,0 +1,27 @@
+// S3に配置できるみたい。
+[
+  {
+    "description": "BigQueryのデータセット内のテーブル一覧を取得します。",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "project_id": { "type": "string", "description": "GCPのプロジェクトID（未指定時はBQ_DEFAULT_PROJECT_IDを使用）" },
+        "dataset_id": { "type": "string", "description": "対象のデータセットID（未指定時はBQ_DEFAULT_DATASET_IDを使用）" },
+        "location": { "type": "string", "description": "ロケーション(例: US, asia-northeast1)。省略可" }
+      },
+      "required": []
+    },
+    "name": "get_bigquery"
+  },
+  {
+    "description": "Google Driveの情報を取得（モック）",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "timezone": { "type": "string" }
+      },
+      "required": []
+    },
+    "name": "get_googledrive"
+  }
+]

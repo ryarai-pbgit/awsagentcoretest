@@ -207,5 +207,44 @@ Cognitoへの認証取得、Gatewayやその先のLambdaへの疎通は確認で
 - LiteLLM/Langfuseとの統合
 の予定。
 
+## 4. mcpツールでBigqueryの情報を取得する（2025/10/20）
+
+Streamlit > Agent Core gateway > lambda mcp tool > bigqueryという流れを試してみます。
+
+### 4.1 Bigqueryの準備
+Cursorにサンプルのテーブルとデータを作ってもらい投入しました。<br>
+[src/bigquery](src/bigquery) 
+
+また、サービスアカウントを作成して、鍵をLambdaの環境変数として登録してあります。<br>
+実務上はこのmcpアウトバウンド認証認可はポイントになりそうです。今回はとりあえず接続することを優先します。
+```
+1) GCPコンソール → IAMと管理 → サービス アカウント → 作成
+2) 名前/ID入力 → 作成
+3) 権限付与（最小権限の例）
+BigQuery Job User: roles/bigquery.jobUser（クエリ実行用）
+BigQuery Data Viewer: roles/bigquery.dataViewer（閲覧用）
+4) 「鍵」タブ → 「鍵を追加」→「新しい鍵を作成」→ JSON → ダウンロード
+5) ダウンロードしたJSONの中身を、そのままLambdaの環境変数GCP_SERVICE_ACCOUNT_JSONに貼り付け（全内容をコピペ）
+```
+
+### 4.2 Lambdaの修正
+こちらもCursorに書いてもらいました。googleのライブラリを使うのでLayer化もしています。<br>
+[src/lambda](src/lambda) 
+
+Layer化はこちら
+```
+mkdir -p layer/python
+docker run --rm -v "$PWD/layer:/opt" --entrypoint /bin/bash public.ecr.aws/lambda/python:3.12 -lc "python -m pip install --upgrade pip && pip install google-cloud-bigquery google-auth -t /opt/python"
+cd layer
+zip -r ../bigquery-layer.zip python
+cd ..
+```
+レイヤーの追加、Zipのアップロード、ランタイムの選択、ファンクションからのレイヤー紐付け、テスト、はマネジメントコンソールで実施。<br>
+
+### 4.3 Streamlitからの呼び出し
+下記の通り、Bigqueryにmcpツール越しに接続して情報を取得することができました。
+![BigQuery MCP連携の実行例](images/bigquery_mcp.png)
+
+次回はGoogle Driveを経て、アウトバウンド認証を科学する感じかもしれません。
 
 
