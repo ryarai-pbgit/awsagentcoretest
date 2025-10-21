@@ -247,4 +247,7 @@ cd ..
 
 次回はGoogle Driveを経て、アウトバウンド認証を科学する感じかもしれません。
 
+### 4.4 外伝：Google ChatでGeminiに自然言語でBigqueryにクエリできるのか？（2025/10/21）
+本日の調べもの<br>
+[doc/4_4.md](doc/4_4.md) 
 
