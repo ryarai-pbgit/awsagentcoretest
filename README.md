@@ -258,3 +258,22 @@ cd ..
 ### 4.6 外伝：OpenAI標準でもリクエスト構造はブレる（2025/10/22）
 本日の調べもの<br>
 [doc/4_6.md](doc/4_6.md) 
+
+## 5. mcpツールとしてLLMを呼び出す。（2025/10/24）
+Agent Core Gatewayが、OpenAPI標準のREST APIをMCPツールに変換してくれるというのであれば、OpenAI標準の/chat/completionも当然OpenAPI標準のREST APIなので1つのツールとして登録し、呼び出せるのではないかと検証。
+- OpenAPI定義
+[azure-ai-foundry-gpt4o-mini-openapi.yaml の定義はこちら](src/python/azure-ai-foundry-gpt4o-mini-openapi.yaml)
+
+- Gateway側の対応
+上記のyamlを読み込ませるだけ。APIキーをAgent Core Identityに登録して、ツール実行時に渡して、みたいな設定も入れてますが、それは標準的な操作なので割愛。
+
+- python
+[src/python/test.py のサンプルはこちら](src/python/test.py)
+
+-　実行結果抜粋
+```
+"message\":{\"annotations\":[],\"content\":\"It looks like you might be expressing confusion or frustration. How can I assist you today?\}
+```
+呼べる、、LLM自体をMCPツールの1つとして利用できることが判明。<br>
+ただし、LiteLLM（各社の仕様差を吸収、課金管理、フェールオーバ、負荷分散など）の機能を持たせようとすると、間にアプリケーションが必要になる。ある意味、LiteLLMの意味合いも明確になる検証でした。<br>
+完全なXXX専用機みたいなLLMは、この形でも良いのかもしれませんが、剥き出しの状態で本気で使えるかというと、エンタープライズ的な制御が必要な気がします。結局、そのレイヤをどこが担保する、実装する、吸収するのか、という話のように思います。

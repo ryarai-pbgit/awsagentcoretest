@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: Azure AI Foundry GPT-4o-mini API
+  description: Azure AI FoundryのGPT-4o-miniモデル用のOpenAPIスキーマ（/chat/completionsエンドポイント）
+  version: 1.0.0
+  contact:
+    name: Azure AI Foundry
+    url: https://ai.azure.com
+servers:
+  - url: https://{resource}.cognitiveservices.azure.com/openai/deployments/{deployment}
+    description: Azure OpenAI エンドポイント
+    variables:
+      resource:
+        description: Azure OpenAI のリソース名
+        default: myaifoundry20251019
+      deployment:
+        description: デプロイメント名
+        default: gpt-4o-mini
+paths:
+  /chat/completions:
+    parameters:
+      - $ref: '#/components/parameters/ApiVersionParam'
+    post:
+      summary: チャット補完の生成
+      description: GPT-4o-miniモデルを使用してチャット補完を生成します
+      operationId: createChatCompletion
+      tags:
+        - Chat Completions
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              simple_chat:
+                summary: シンプルなチャット
+                value:
+                  messages:
+                    - role: user
+                      content: "こんにちは、元気ですか？"
+                  max_tokens: 100
+                  temperature: 0.7
+              system_prompt:
+                summary: システムプロンプト付きチャット
+                value:
+                  messages:
+                    - role: system
+                      content: "あなたは親切なアシスタントです。"
+                    - role: user
+                      content: "プログラミングについて教えてください"
+                  max_tokens: 200
+                  temperature: 0.5
+      responses:
+        '200':
+          description: 成功したレスポンス
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+              examples:
+                success_response:
+                  summary: 成功レスポンス
+                  value:
+                    id: "chatcmpl-1234567890"
+                    object: "chat.completion"
+                    created: 1677652288
+                    model: "gpt-4o-mini"
+                    choices:
+                      - index: 0
+                        message:
+                          role: "assistant"
+                          content: "こんにちは！元気です、ありがとうございます。あなたはいかがですか？"
+                        finish_reason: "stop"
+                    usage:
+                      prompt_tokens: 20
+                      completion_tokens: 15
+                      total_tokens: 35
+        '400':
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: レート制限エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: api-key
+      description: Azure AI FoundryのAPIキー
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Azure AD認証トークン
+
+  parameters:
+    ApiVersionParam:
+      in: query
+      name: api-version
+      required: true
+      schema:
+        type: string
+        default: 2024-12-01-preview
+      description: Azure OpenAI の API バージョン
+
+  schemas:
+    ChatCompletionRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          description: チャットメッセージの配列
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          minItems: 1
+        max_tokens:
+          type: integer
+          description: 生成する最大トークン数
+          minimum: 1
+          maximum: 4096
+          default: 1000
+        temperature:
+          type: number
+          description: サンプリング温度（0.0-2.0）
+          minimum: 0.0
+          maximum: 2.0
+          default: 1.0
+        top_p:
+          type: number
+          description: 核サンプリングパラメータ（0.0-1.0）
+          minimum: 0.0
+          maximum: 1.0
+          default: 1.0
+        frequency_penalty:
+          type: number
+          description: 頻度ペナルティ（-2.0-2.0）
+          minimum: -2.0
+          maximum: 2.0
+          default: 0.0
+        presence_penalty:
+          type: number
+          description: 存在ペナルティ（-2.0-2.0）
+          minimum: -2.0
+          maximum: 2.0
+          default: 0.0
+        stop:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: 生成を停止する文字列または文字列配列
+        stream:
+          type: boolean
+          description: ストリーミングレスポンスの有効化
+          default: false
+        user:
+          type: string
+          description: ユーザー識別子（監査・デバッグ用）
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          description: メッセージの役割
+        content:
+          type: string
+          description: メッセージの内容
+        name:
+          type: string
+          description: メッセージの送信者名（オプション）
+        function_call:
+          $ref: '#/components/schemas/FunctionCall'
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+        tool_call_id:
+          type: string
+          description: ツール呼び出しのID
+
+    FunctionCall:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 関数名
+        arguments:
+          type: string
+          description: 関数の引数（JSON文字列）
+
+    ToolCall:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ツール呼び出しのID
+        type:
+          type: string
+          enum: [function]
+          description: ツールのタイプ
+        function:
+          $ref: '#/components/schemas/FunctionCall'
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: レスポンスの一意ID
+        object:
+          type: string
+          enum: [chat.completion, chat.completion.chunk]
+          description: オブジェクトタイプ
+        created:
+          type: integer
+          format: int64
+          description: 作成時刻（Unix timestamp）
+        model:
+          type: string
+          description: 使用されたモデル名
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionChoice'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        system_fingerprint:
+          type: string
+          description: システムフィンガープリント
+
+    ChatCompletionChoice:
+      type: object
+      properties:
+        index:
+          type: integer
+          description: 選択肢のインデックス
+        message:
+          $ref: '#/components/schemas/ChatMessage'
+        delta:
+          $ref: '#/components/schemas/ChatMessage'
+        logprobs:
+          $ref: '#/components/schemas/LogProbs'
+        finish_reason:
+          type: string
+          enum: [stop, length, function_call, content_filter, null]
+          description: 終了理由
+
+    LogProbs:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogProb'
+
+    LogProb:
+      type: object
+      properties:
+        token:
+          type: string
+        logprob:
+          type: number
+        bytes:
+          type: array
+          items:
+            type: integer
+        top_logprobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopLogProb'
+
+    TopLogProb:
+      type: object
+      properties:
+        token:
+          type: string
+        logprob:
+          type: number
+        bytes:
+          type: array
+          items:
+            type: integer
+
+    Usage:
+      type: object
+      properties:
+        prompt_tokens:
+          type: integer
+          description: プロンプトのトークン数
+        completion_tokens:
+          type: integer
+          description: 補完のトークン数
+        total_tokens:
+          type: integer
+          description: 総トークン数
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: エラーメッセージ
+            type:
+              type: string
+              description: エラータイプ
+            param:
+              type: string
+              description: エラーのパラメータ
+            code:
+              type: string
+              description: エラーコード
+          required:
+            - message
+            - type
+
+tags:
+  - name: Chat Completions
+    description: チャット補完関連のエンドポイント
