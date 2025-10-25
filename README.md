@@ -10,7 +10,8 @@ MCPやA2Aの基盤として有力なサービス、2025/10にGAされたAgent Co
 4. [mcpツールでBigqueryの情報を取得する（2025/10/20）](#4-mcpツールでbigqueryの情報を取得する20251020)
 5. [mcpツールとしてLLMを呼び出す。（2025/10/24）](#5-mcpツールとしてllmを呼び出す20251024)
 6. [チャットアプリ（再）原型まで（2025/10/25）](#6-チャットアプリ再原型まで20251025)
-7. [Text2Queryに向けてBigQueryの整備（2025/10/26以降）](#7-text2queryに向けてbigqueryの整備20251026)
+7. [Text2Queryに向けてBigQueryの整備（2025/10/25）](#7-text2queryに向けてbigqueryの整備20251025)
+8. [テキスト２クエリの作戦検討（2025/10/26）](#8-テキスト２クエリの作戦検討20251026)
 
 ## 1. 初めてのAgent Core（2025/10/19）
  https://docs.aws.amazon.com/ja_jp/bedrock-agentcore/latest/devguide/agentcore-get-started-toolkit.html<br>
@@ -415,4 +416,21 @@ Streamlit ベースのチャットUI（`compass_ui`）は以下から参照で�
 画面イメージ:
 ![Compass Chat UI](images/compass_ui.png)
 
-## 7. Text2Queryに向けてBigQueryの整備（2025/10/26）
+## 7. Text2Queryに向けてBigQueryの整備（2025/10/25）
+別件で利用していたSnowflake上のテーブルとデータを持ってくる。<br>
+
+- SnowflakeのDDLはこちら<br>
+[src/snowflake/ddl/](src/snowflake/ddl/)<br>
+
+- BigQuery版のDDLはこちら<br>
+[src/bigquery/ddl/](src/bigquery/ddl/)<br>
+
+- Snowflake版のアンロードスクリプトはこちら<br>
+[src/snowflake/unload/](src/snowflake/unload/)<br>
+
+- BigQuery版のロードスクリプトはこちら<br>
+[src/bigquery/load/](src/bigquery/load/)<br>
+
+## 8. テキスト２クエリの作戦検討（2025/10/26）
+ここまでの準備を元にして、mcpツールとRAGなのかVerifie Queryもどきなのかを駆使して少し形にしてみたいので、作戦を検討する。（Snowflake AnalystやSLMはここではやらない、別のリポジトリで研究する。ここではAgentCore＋mcp＋Bigqueryのセマンティック方面の検証を行う。）
+（帰りの新幹線で書く）
