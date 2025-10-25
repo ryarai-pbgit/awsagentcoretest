@@ -2,6 +2,16 @@
 MCPやA2Aの基盤として有力なサービス、2025/10にGAされたAgent Coreを検証するリポジトリ。<br>
 初歩的なところから多数の試行錯誤が発生するため、独立。
 
+## 目次
+
+1. [初めてのAgent Core（2025/10/19）](#1-初めてのagent-core20251019)
+2. [初めてのAgent Core Gateway（2025/10/19）](#2-初めてのagent-core-gateway20251019)
+3. [Gatewayを利用するStremlitアプリ：ローカルで試作（2025/10/19）](#3-gatewayを利用するstremlitアプリローカルで試作20251019)
+4. [mcpツールでBigqueryの情報を取得する（2025/10/20）](#4-mcpツールでbigqueryの情報を取得する20251020)
+5. [mcpツールとしてLLMを呼び出す。（2025/10/24）](#5-mcpツールとしてllmを呼び出す20251024)
+6. [チャットアプリ（再）原型まで（2025/10/25）](#6-チャットアプリ再原型まで20251025)
+7. [Text2Queryに向けてBigQueryの整備（2025/10/26以降）](#7-text2queryに向けてbigqueryの整備20251026)
+
 ## 1. 初めてのAgent Core（2025/10/19）
  https://docs.aws.amazon.com/ja_jp/bedrock-agentcore/latest/devguide/agentcore-get-started-toolkit.html<br>
  上記の通りに進めました、ドキュメントの内容からこちらで変更した点、注目した結果などを中心に記載。<br>
@@ -277,3 +287,132 @@ Agent Core Gatewayが、OpenAPI標準のREST APIをMCPツールに変換して�
 呼べる、、LLM自体をMCPツールの1つとして利用できることが判明。<br>
 ただし、LiteLLM（各社の仕様差を吸収、課金管理、フェールオーバ、負荷分散など）の機能を持たせようとすると、間にアプリケーションが必要になる。ある意味、LiteLLMの意味合いも明確になる検証でした。<br>
 完全なXXX専用機みたいなLLMは、この形でも良いのかもしれませんが、剥き出しの状態で本気で使えるかというと、エンタープライズ的な制御が必要な気がします。結局、そのレイヤをどこが担保する、実装する、吸収するのか、という話のように思います。
+
+## 6. チャットアプリ（再）原型まで（2025/10/25）
+少し知識もついてきたので、改めてAIチャットボットのデモ作り。<br>
+UI、AIエージェント、などちゃんと分離したい。
+
+### 6.1 アーキテクチャ図
+cursor氏（Ask, Auto）と会話、まずはこれを目指して進めることにしました。
+```mermaid
+graph TB
+    subgraph "ユーザー"
+        U[ユーザー]
+    end
+    
+    subgraph "EKS"
+        S[Streamlit App]
+    end
+    
+    subgraph "AWS AgentCore"
+        SA[Strands Agent]
+    end
+    
+    subgraph "Lambda"
+        MCP[BigQuery MCP]
+    end
+    
+    subgraph "Google Cloud"
+        GEMINI[Gemini API]
+    end
+    
+    subgraph "データ"
+        BQ[BigQuery]
+    end
+    
+    U --> S
+    S --> SA
+    SA --> GEMINI
+    SA --> MCP
+    MCP --> BQ
+    BQ --> MCP
+    MCP --> SA
+    GEMINI --> SA
+    SA --> S
+    S --> U
+```
+
+### 6.2 standsコーディングのためのmcpサーバーの導入
+https://github.com/strands-agents/mcp-server<br>
+こちらを参考にCursorに導入。これがないと全くコードの精度が上がりませんでした。
+
+### 6.3 チャットエージェントの作成
+
+src/compass のディレクトリ構造は以下の通りです。
+
+```
+src/compass/
+├── __init__.py
+├── main.py
+├── agent.py
+├── config.py
+└── utils.py
+```
+
+- `main.py` … アプリケーションのエントリーポイント（CLI用・AgentCore連携）
+- `agent.py` … チャットエージェントのコアロジック実装
+- `config.py` … 環境変数の読込や設定値管理
+- `utils.py` … 各種ユーティリティ関数
+- `env.example` … .env用のサンプルテンプレート
+- `tools/mcp/mcp_client.py` … MCPサーバークライアント実装
+
+必要に応じて、各ファイルおよびサブディレクトリを参照してください。
+
+### 6.4 Agent Coreへのデプロイ
+チュートリアルでは、starter toolkitを使ったので、今回は使わずに任意のエージェントをデプロイできるようにと進めました。
+- エージェントメモリの作成
+![エージェントメモリの作成](images/agent_memory.png)
+
+- ECRの作成
+![ECRの作成](images/ecr.png)
+
+- Dockerfile<br>
+１から自作するとデプロイしてからエラーになり粘っても解決できませんでした。（今思えばプラットフォームのずれな気がします。）<br>
+一度starter toolkitを使ってデプロイしてから正常動作を確認してからDockerfileを抜き出して利用しました。<br>
+[Dockerfile](src/compass/Dockerfile)
+
+- 環境変数は<br>
+高度な設定の環境変数のところで設定。
+![環境変数](images/env.png)
+
+### 6.5 動作確認
+手動デプロイ後、レディ状態を確認して、下記のコードで動作を確認。
+```python
+import boto3
+import json
+
+client = boto3.client('bedrock-agentcore', region_name='ap-northeast-1')
+payload = json.dumps({
+    "prompt": "どのようなツールが使えますか？"
+})
+
+response = client.invoke_agent_runtime(
+    agentRuntimeArn='XXXX',
+    runtimeSessionId='XXXX',  # Must be 33+ chars
+    payload=payload,
+    qualifier="DEFAULT" # Optional
+)
+response_body = response['response'].read()
+response_data = json.loads(response_body)
+print("Agent Response:", response_data)
+```
+レスポンス
+```bash
+% python invoke.py
+Agent Response: {'result': '私は、以下のツールを使用できます。\n\n*   `x_amz_bedrock_agentcore_search`: コンテキストに一致するツールのサブセットを取得するために使用します。\n*   `TestGatewayTarget94053631___get_bigquery`: BigQuery の情報を取得するために使用します。\n*   `TestGatewayTarget94053631___get_googledrive`: Google Drive の情報を取得するために使用します。\n\nこれらのツールについて、さらに詳しい情報が必要な場合はお知らせください。\n'}
+```
+この状態で、オブザーバビリティのダッシュボードも確認できる状態になっている。<br>
+詳細は表示してないが、内容を確認できることは確認。特にトレースはデバッグする上では必須。<br>
+（Cloudwatchのアプリログ、イベントログだけでは全然足りない）
+![observe.png](images/observe.png)
+
+### 6.6 UI
+Streamlitで簡易なものを調達、ロジックはエージェント側に持たせている。<br>
+Streamlit ベースのチャットUI（`compass_ui`）は以下から参照できます。
+- [src/compass_ui/app.py](src/compass_ui/app.py)  
+- [requirements.txt](src/compass_ui/requirements.txt)  
+
+画面イメージ:
+![Compass Chat UI](images/compass_ui.png)
+
+## 7. Text2Queryに向けてBigQueryの整備（2025/10/26）

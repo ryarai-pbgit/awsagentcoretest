@@ -1,0 +1,8 @@
+# Bedrock AgentCore Starter Toolkit requirements
+bedrock-agentcore
+strands-agents
+# Strands Agent requirements (MCPクライアント版 + Gemini)
+strands-agents[gemini]>=0.1.0
+strands-agents-tools>=0.1.0
+requests>=2.31.0
+mcp>=0.1.0

@@ -63,3 +63,12 @@ env.sh
 # Lambda Layer 関連（ビルド成果物を除外）
 layer/
 bigquery-layer.zip
+
+# ECR関連ファイルを除外
+ecr.txt
+
+# Bedrock AgentCore関連ファイルを除外
+.bedrock_agentcore.yaml
+
+# invoke.py
+invoke.py
